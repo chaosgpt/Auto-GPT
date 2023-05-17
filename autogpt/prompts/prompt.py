@@ -1,14 +1,18 @@
 from colorama import Fore
 
-from autogpt.api_manager import api_manager
 from autogpt.config.ai_config import AIConfig
 from autogpt.config.config import Config
+from autogpt.llm import ApiManager
 from autogpt.logs import logger
 from autogpt.prompts.generator import PromptGenerator
 from autogpt.setup import prompt_user
 from autogpt.utils import clean_input
 
 CFG = Config()
+
+DEFAULT_TRIGGERING_PROMPT = (
+    "Determine which next command to use, and respond using the format specified above:"
+)
 
 
 def build_default_prompt_generator() -> PromptGenerator:
@@ -34,18 +38,8 @@ def build_default_prompt_generator() -> PromptGenerator:
     )
     prompt_generator.add_constraint("No user assistance")
     prompt_generator.add_constraint(
-        'Exclusively use the commands listed in double quotes e.g. "command name"'
+        "Exclusively use the commands listed below e.g. command_name"
     )
-
-    # Define the command list
-    commands = [
-        ("Do Nothing", "do_nothing", {}),
-        ("Task Complete (Shutdown)", "task_complete", {"reason": "<reason>"}),
-    ]
-
-    # Add commands to the PromptGenerator object
-    for command_label, command_name, args in commands:
-        prompt_generator.add_command(command_label, command_name, args)
 
     # Add resources to the PromptGenerator object
     prompt_generator.add_resource(
@@ -105,16 +99,23 @@ Name:  {config.ai_name}
 Role:  {config.ai_role}
 Goals: {config.ai_goals}
 API Budget: {"infinite" if config.api_budget <= 0 else f"${config.api_budget}"}
-Continue (y/n): """
+Continue ({CFG.authorise_key}/{CFG.exit_key}): """
         )
-        if should_continue.lower() == "n":
+        if should_continue.lower() == CFG.exit_key:
             config = AIConfig()
 
     if not config.ai_name:
         config = prompt_user()
         config.save(CFG.ai_settings_file)
 
+    if CFG.restrict_to_workspace:
+        logger.typewriter_log(
+            "NOTE:All files/directories created by this agent can be found inside its workspace at:",
+            Fore.YELLOW,
+            f"{CFG.workspace_path}",
+        )
     # set the total api budget
+    api_manager = ApiManager()
     api_manager.set_total_budget(config.api_budget)
 
     # Agent Created, print message
