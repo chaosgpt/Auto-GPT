@@ -5,16 +5,22 @@ import requests
 import yaml
 from colorama import Fore, Style
 from git.repo import Repo
-
-from autogpt.logs import logger
-
-# Use readline if available (for clean_input)
-try:
-    import readline
-except ImportError:
-    pass
+from prompt_toolkit import ANSI, PromptSession
+from prompt_toolkit.history import InMemoryHistory
 
 from autogpt.config import Config
+from autogpt.logs import logger
+
+session = PromptSession(history=InMemoryHistory())
+
+
+def batch(iterable, max_batch_length: int, overlap: int = 0):
+    """Batch data from iterable into slices of length N. The last batch may be shorter."""
+    # batched('ABCDEFG', 3) --> ABC DEF G
+    if max_batch_length < 1:
+        raise ValueError("n must be at least one")
+    for i in range(0, len(iterable), max_batch_length - overlap):
+        yield iterable[i : i + max_batch_length]
 
 
 def clean_input(prompt: str = "", talk=False):
@@ -50,7 +56,7 @@ def clean_input(prompt: str = "", talk=False):
 
         # ask for input, default when just pressing Enter is y
         logger.info("Asking user via keyboard...")
-        answer = input(prompt)
+        answer = session.prompt(ANSI(prompt))
         return answer
     except KeyboardInterrupt:
         logger.info("You interrupted Auto-GPT")

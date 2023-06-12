@@ -3,11 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from autogpt.config.ai_config import AIConfig
-from autogpt.setup import (
-    generate_aiconfig_automatic,
-    generate_aiconfig_manual,
-    prompt_user,
-)
+from autogpt.setup import generate_aiconfig_automatic, prompt_user
 from tests.utils import requires_api_key
 
 
@@ -15,7 +11,7 @@ from tests.utils import requires_api_key
 @requires_api_key("OPENAI_API_KEY")
 def test_generate_aiconfig_automatic_default(patched_api_requestor):
     user_inputs = [""]
-    with patch("builtins.input", side_effect=user_inputs):
+    with patch("autogpt.utils.session.prompt", side_effect=user_inputs):
         ai_config = prompt_user()
 
     assert isinstance(ai_config, AIConfig)
@@ -48,7 +44,7 @@ def test_generate_aiconfig_automatic_fallback(patched_api_requestor):
         "",
         "",
     ]
-    with patch("builtins.input", side_effect=user_inputs):
+    with patch("autogpt.utils.session.prompt", side_effect=user_inputs):
         ai_config = prompt_user()
 
     assert isinstance(ai_config, AIConfig)
@@ -69,7 +65,7 @@ def test_prompt_user_manual_mode(patched_api_requestor):
         "",
         "",
     ]
-    with patch("builtins.input", side_effect=user_inputs):
+    with patch("autogpt.utils.session.prompt", side_effect=user_inputs):
         ai_config = prompt_user()
 
     assert isinstance(ai_config, AIConfig)
